@@ -61,7 +61,7 @@ python -c "import pymodbus; print('pymodbus', pymodbus.__version__)"
 
 ### Terminal A — UDP JSON log server
 ```bash
-python main.py logger --host 0.0.0.0 --port 9000 --ids
+python main.py logger --host 0.0.0.0 --port 9000 --ids --ids-alert-file ./logs/ids.log
 ```
 - Aggregates incoming JSON to `./logs/central.log`.
 - Prints lines like:
@@ -140,7 +140,13 @@ The UDP log server can run a **minimal IDS** layer that raises alerts on:
 - **write_readonly_area**: writes targeting `input` or `discrete` areas.
 
 Enable it by adding `--ids` when running the logger (or `both` mode). Alerts are logged to
-`./logs/ids.log` and include the rule name, source, and original event JSON.
+`./logs/ids.log` by default (override with `--ids-alert-file`) and include the rule name, source,
+and original event JSON.
+
+Example alert line:
+```
+2025-11-13 10:02:17,000 [WARNING] ALERT rule=write_burst src=10.0.0.5:34567 {"ts":"…Z","rule":"write_burst","src":"10.0.0.5:34567","event":{"event":"mb_write","type":"holding","address":0,"count":1,"values":[123]}}
+```
 
 ---
 
