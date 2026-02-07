@@ -20,6 +20,8 @@ def build_cli() -> argparse.ArgumentParser:
     p_log.add_argument("--host", default="127.0.0.1")
     p_log.add_argument("--port", type=int, default=9000)
     p_log.add_argument("--log-file", default="./logs/central.log")
+    p_log.add_argument("--ids", action="store_true", help="enable minimal IDS on incoming logs")
+    p_log.add_argument("--ids-alert-file", default="./logs/ids.log")
 
 
     p_srv = sub.add_parser("server", help="start Modbus/TCP honeypot server")
@@ -35,6 +37,8 @@ def build_cli() -> argparse.ArgumentParser:
     p_both.add_argument("--log-host", default="127.0.0.1")
     p_both.add_argument("--log-port", type=int, default=9000)
     p_both.add_argument("--log-file", default="./logs/plc.log")
+    p_both.add_argument("--ids", action="store_true", help="enable minimal IDS on incoming logs")
+    p_both.add_argument("--ids-alert-file", default="./logs/ids.log")
 
 
     return p
@@ -45,7 +49,7 @@ async def _main_async(argv: list[str]) -> int:
 
 
     if args.cmd == "logger":
-        await run_udp_log_server(args.host, args.port, args.log_file)
+        await run_udp_log_server(args.host, args.port, args.log_file, args.ids, args.ids_alert_file)
         return 0
 
 
@@ -57,7 +61,15 @@ async def _main_async(argv: list[str]) -> int:
 
     if args.cmd == "both":
         # start logger then server; cancel logger when server exits
-        logger_task = asyncio.create_task(run_udp_log_server(args.log_host, args.log_port, "./logs/central.log"))
+        logger_task = asyncio.create_task(
+            run_udp_log_server(
+                args.log_host,
+                args.log_port,
+                "./logs/central.log",
+                args.ids,
+                args.ids_alert_file,
+            )
+        )
         await asyncio.sleep(0.1)
         try:
             await run_modbus_server(args.plc_host, args.plc_port, args.log_file, (args.log_host, args.log_port))
