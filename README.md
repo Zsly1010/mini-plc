@@ -61,13 +61,14 @@ python -c "import pymodbus; print('pymodbus', pymodbus.__version__)"
 
 ### Terminal A — UDP JSON log server
 ```bash
-python main.py logger --host 0.0.0.0 --port 9000
+python main.py logger --host 0.0.0.0 --port 9000 --ids --ids-alert-file ./logs/ids.log
 ```
 - Aggregates incoming JSON to `./logs/central.log`.
 - Prints lines like:
   ```
   REMOTE 127.0.0.1:54321 {"ts":"…Z","event":"mb_write","type":"holding","address":0,"count":1,"values":[123]}
   ```
+- When `--ids` is enabled, alerts are written to `./logs/ids.log` (see section 7.3).
 
 ### Terminal B — Modbus/TCP honeypot
 ```bash
@@ -131,6 +132,22 @@ python main.py server \
 {"ts":"2025-11-13T02:02:18.001Z","event":"heartbeat","beat":7}
 ```
 
+### 7.3 Minimal IDS (UDP log server)
+The UDP log server can run a **minimal IDS** layer that raises alerts on:
+- **write_burst**: ≥5 writes from the same source within 10 seconds.
+- **bulk_write**: write count ≥10 in a single request.
+- **possible_scan**: read count ≥32 in a single request.
+- **write_readonly_area**: writes targeting `input` or `discrete` areas.
+
+Enable it by adding `--ids` when running the logger (or `both` mode). Alerts are logged to
+`./logs/ids.log` by default (override with `--ids-alert-file`) and include the rule name, source,
+and original event JSON.
+
+Example alert line:
+```
+2025-11-13 10:02:17,000 [WARNING] ALERT rule=write_burst src=10.0.0.5:34567 {"ts":"…Z","rule":"write_burst","src":"10.0.0.5:34567","event":{"event":"mb_write","type":"holding","address":0,"count":1,"values":[123]}}
+```
+
 ---
 
 ## 8) Cross-VM Sanity Test (attacker side)
@@ -157,4 +174,3 @@ Expected:
 - Server terminal shows `READ/WRITE …` lines.
 - UDP logger prints the corresponding JSON events and writes `./logs/central.log`.
 ```
-
